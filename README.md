@@ -90,6 +90,7 @@ TA0004: Privilege Escalation & T1078: Valid Accounts
 TA0007: Discovery & T1049: System Network Connections Discovery
 
 TA0008: Lateral Movement & T1021: Remote Services
+
 ---
 
 ## Response Action
