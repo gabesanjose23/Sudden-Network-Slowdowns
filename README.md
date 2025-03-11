@@ -19,7 +19,7 @@ All traffic originating from within the local network is by default allowed by a
 
 ### 1. Inspecting the logs for excessive successful/failed connections from any devices.  
 
-"network-slowdow" was found failing several connection requests against itself and another host on the same network:
+"windows-target-1" was found failing several connection requests against itself and another host on the same network:
 
 **Query used to locate events:**
 
@@ -33,20 +33,18 @@ DeviceNetworkEvents
 
 ---
 
-### 2. Find out if anyone has attempted to login into the machine
+### 2. Investigate the failed connection logs
 
-Several bad actor have been discovered attempting to login into the Target machine.
+After observing failed connection request from a suspected host (10.0.0.5) in chronological order, I noticed a port scan was taking place due to the sequential order of the port.There were several port scans being conducted.
 
 **Query used to locate event:**
 
 ```kql
-DeviceLogonEvents
-|where DeviceName == "windows-target-1"
-| where LogonType has_any("Network", "Interactive", "RemoteInteractive", "Unlock")
-| where ActionType == "LogonFailed"
-| where isnotempty(RemoteIP)
-| summarize Attempts = count() by ActionType, RemoteIP, DeviceName
-| order by Attempts
+let IPInQuestion = "10.0.0.5";
+DeviceNetworkEvents
+| where ActionType == "ConnectionFailed"
+| where LocalIP == IPInQuestion
+| order by Timestamp desc
 ```
 <img width="1212" alt="image" src="Screenshot 2025-03-10 141537.png">
 
