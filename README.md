@@ -17,20 +17,19 @@ All traffic originating from within the local network is by default allowed by a
 
 ## Steps Taken
 
-### 1. Find out how long it's been exposed to the internet 
+### 1. Inspecting the logs for excessive successful/failed connections from any devices.  
 
-Windows-target-1 has been internet facing for several days.Last internet facing time: 2025-03-10T18:28:06.2983018Z
+"network-slowdow" was found failing several connection requests against itself and another host on the same network:
 
 **Query used to locate events:**
 
 ```kql
-DeviceInfo
-| where DeviceName == "network-slowdow"
-|where IsInternetFacing == true
-| order by Timestamp desc
-
+DeviceNetworkEvents
+| where ActionType == "ConnectionFailed"
+| summarize ConnectionCount = count()by DeviceName, ActionType, LocalIP
+| order by ConnectionCount
 ```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 140735.png">
+<img width="1212" alt="image" src="Screenshot 2025-03-11 132927.png">
 
 ---
 
