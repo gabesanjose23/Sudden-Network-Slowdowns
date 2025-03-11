@@ -29,7 +29,7 @@ DeviceNetworkEvents
 | summarize ConnectionCount = count()by DeviceName, ActionType, LocalIP
 | order by ConnectionCount
 ```
-<img width="1212" alt="image" src="Screenshot 2025-03-11 132927.png">
+<img width="1212" alt="image" src="Screenshot 2025-03-11 140302.png">
 
 ---
 
@@ -46,13 +46,13 @@ DeviceNetworkEvents
 | where LocalIP == IPInQuestion
 | order by Timestamp desc
 ```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 141537.png">
+<img width="1212" alt="image" src="Screenshot 2025-03-11 140218.png">
 
 ---
 
 ### 3. Check if any of the bad actor where able to login
 
-The top 10 most failed login attempts IP addresses have not been able to successfully break into the VM
+I pivoted to the DeviceProccessEvent table to see if we could see anything that was suspicious around the time the port scan started.We noticed a PowerShell script named portscan.ps1  launching at:2025-03-11T04:37:00.5366227Z
 
 **Query used to locate events:**
 
@@ -63,13 +63,13 @@ DeviceLogonEvents
 | where ActionType == "LogonSuccess"
 | where RemoteIP has_any(RemoteIPsInQuestion)
 ```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 143007.png">
+<img width="1212" alt="image" src="Screenshot 2025-03-11 140134.png">
 
 ---
 
 ### 4. Check who dose have access to the account
 
-The only successful remote/network logons in the last 7 days was for the ‘labuser’ account (6 total)
+I logged into the suspect computer and observed the powershell script that was used to conduct port scan.
 
 **Query used to locate events:**
 
@@ -80,7 +80,7 @@ DeviceLogonEvents
 |where DeviceName =="windows-target-1"
 |where AccountName == ”labuser”
 ```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 145153.png">
+<img width="1212" alt="image" src="Screenshot 2025-03-11 140911.png">
 
 ---
 ### 5. Check if labuser has any suspicious failed login attemps 
