@@ -50,93 +50,50 @@ DeviceNetworkEvents
 
 ---
 
-### 3. Check if any of the bad actor where able to login
+### 3. Check out the log event for the port scan 
 
 I pivoted to the DeviceProccessEvent table to see if we could see anything that was suspicious around the time the port scan started.We noticed a PowerShell script named portscan.ps1  launching at:2025-03-11T04:37:00.5366227Z
 
 **Query used to locate events:**
 
 ```kql
-let RemoteIPsInQuestion = dynamic(["128.1.44.9", "178.20.129.235", "83.118.125.238", "106.246.239.179", "85.215.149.156", "146.196.63.17", "89.232.41.74", "190.5.100.193", "178.176.229.228"]);
-DeviceLogonEvents
-| where LogonType has_any("Network", "Interactive", "RemoteInteractive", "Unlock")
-| where ActionType == "LogonSuccess"
-| where RemoteIP has_any(RemoteIPsInQuestion)
+let VMName = "windows-target-1";
+let specificTime = datetime(2025-03-11T04:43:48.5646128Z);
+DeviceProcessEvents
+| where Timestamp between ((specificTime - 10m) .. (specificTime + 10m))
+| where DeviceName == VMName
+| order by Timestamp desc
+| project Timestamp, FileName, InitiatingProcessCommandLine
 ```
 <img width="1212" alt="image" src="Screenshot 2025-03-11 140134.png">
 
 ---
 
-### 4. Check who dose have access to the account
+### 4. Investigate the suspect
 
 I logged into the suspect computer and observed the powershell script that was used to conduct port scan.
 
-**Query used to locate events:**
 
-```kql
-DeviceLogonEvents
-| where LogonType =="Network"
-| where ActionType == "LogonSuccess"
-|where DeviceName =="windows-target-1"
-|where AccountName == ”labuser”
-```
 <img width="1212" alt="image" src="Screenshot 2025-03-11 140911.png">
-
----
-### 5. Check if labuser has any suspicious failed login attemps 
-
-There were (0) failed logons for the ‘labuser’ account,indicating that a brute force attempts for this account didn’t take place,and a 1-time password guess is unlikely.
-
-**Query used to locate events:**
-
-```kql
-DeviceLogonEvents
-| where LogonType =="Network"
-| where ActionType == "LogonFailed"
-|where DeviceName =="windows-target-1"
-|where AccountName == "labuser"
-```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 145659.png">
-
----
-
-### 6. Check if the location from which is being logon from is normal
-
-We checked all of the successful login IP addresses for the “labuser” account to see if any of them were unusual or from an unexpected location,All were normal.
-
-**Query used to locate events:**
-
-```kql
-DeviceLogonEvents
-| where LogonType =="Network"
-| where ActionType == "LogonSuccess" 
-|where DeviceName =="windows-target-1"
-|where AccountName == "labuser"
-| summarize loginCount = count() by DeviceName,ActionType,AccountName,RemoteIP
-```
-<img width="1212" alt="image" src="Screenshot 2025-03-10 150405.png">
 
 ---
 
 ## Summary
 
-Though the device was exposed to the internet and clear brute force attempts have taken place, there is no evidence of any brute force success or unauthorized access from the legitimate account “labuser”.
 
-MITRE ATT&CK - T1190: Exploit Public-Facing Application
+TA0043: Reconnaissance & T1046: Network Service Scanning
 
-MITRE ATT&CK - T1078: Valid Accounts
+TA0002: Execution & T1059: Command and Scripting Interpreter
 
-MITRE ATT&CK - T1110: Brute Force
+TA0004: Privilege Escalation & T1078: Valid Accounts
 
+TA0007: Discovery & T1049: System Network Connections Discovery
+
+TA0008: Lateral Movement & T1021: Remote Services
 ---
 
 ## Response Action
-
---Hardened the NSG attached to “windows-target-1” to allow only RDP traffic from specific end-points(no public internet access)
-
---Implemented account lockout policy
-
---Implement MFA
+We observed the port scan script was launched by the SYSTEM account,this is not expected behavior and is not something that was setup by the admins,so I isolated the device and ran a malware scan.The malware scan produced no result , so out of cation,we kept the device isolated and put in a ticket to have it re-imagine/rebuild.
 
 
 ---
